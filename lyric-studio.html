@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lyric Studio — créateur de clips paroles</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Space+Mono:wght@400;700&family=Inter+Tight:wght@400;500;600&display=swap');
+  :root{
+    --bg:#08090b;
+    --bg-2:#0d0f12;
+    --panel:#101317;
+    --panel-2:#161a1f;
+    --line:rgba(255,255,255,0.07);
+    --line-2:rgba(255,255,255,0.14);
+    --txt:#eef1f3;
+    --txt-dim:#8b929c;
+    --txt-faint:#565d66;
+    --acid:#c6f24e;
+    --acid-dim:rgba(198,242,78,0.13);
+    --danger:#ff5a4d;
+    --font-display:"Bricolage Grotesque",sans-serif;
+    --font-body:"Inter Tight",sans-serif;
+    --font-mono:"Space Mono",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  ::selection{background:var(--acid);color:#000}
+  body{
+    background:var(--bg);
+    color:var(--txt);
+    font-family:var(--font-body);
+    line-height:1.55;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.018) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,0.018) 1px,transparent 1px);
+    background-size:44px 44px;
+  }
+  .wrap{max-width:1240px;margin:0 auto;padding:0 22px 90px}
+
+  /* top bar */
+  header.site{display:flex;align-items:center;gap:14px;padding:26px 0 22px;border-bottom:1px solid var(--line);margin-bottom:30px;flex-wrap:wrap}
+  .logo{display:flex;align-items:center;gap:11px}
+  .logo .mark{width:34px;height:34px;border-radius:9px;background:var(--acid);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .logo .mark svg{width:19px;height:19px;color:#000}
+  header.site h1{font-family:var(--font-display);font-weight:800;font-size:23px;letter-spacing:-0.02em;line-height:1}
+  header.site h1 em{font-style:normal;color:var(--acid)}
+  .badge{font-family:var(--font-mono);font-size:10.5px;letter-spacing:0.06em;text-transform:uppercase;color:var(--txt-dim);border:1px solid var(--line);border-radius:6px;padding:5px 9px}
+  .spacer{flex:1}
+  .kbd{font-family:var(--font-mono);font-size:11px;color:var(--txt-faint);border:1px solid var(--line);border-radius:5px;padding:3px 7px}
+
+  .hero{margin-bottom:30px}
+  .hero h2{font-family:var(--font-display);font-weight:800;font-size:clamp(30px,5vw,52px);letter-spacing:-0.03em;line-height:0.98;max-width:13ch}
+  .hero h2 .hl{color:var(--acid)}
+  .hero p{color:var(--txt-dim);font-size:14.5px;max-width:600px;margin-top:14px}
+
+  .layout{display:grid;grid-template-columns:1.05fr 0.95fr;gap:20px;align-items:start}
+  @media(max-width:920px){.layout{grid-template-columns:1fr}}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;position:relative}
+  .card::before{content:"";position:absolute;inset:0;border-radius:18px;pointer-events:none;box-shadow:inset 0 1px 0 rgba(255,255,255,0.04)}
+  .card-h{display:flex;align-items:center;gap:10px;margin-bottom:3px}
+  .card-h .dot{width:7px;height:7px;border-radius:50%;background:var(--acid);box-shadow:0 0 0 4px var(--acid-dim)}
+  .card-h h3{font-family:var(--font-display);font-weight:600;font-size:16px;letter-spacing:-0.01em}
+  .card .sub{color:var(--txt-faint);font-size:12px;margin-bottom:18px;font-family:var(--font-mono);letter-spacing:0.02em}
+
+  /* preview */
+  .stage-frame{background:#000;border-radius:13px;overflow:hidden;position:relative;aspect-ratio:16/9;width:100%;border:1px solid var(--line-2)}
+  #bgLayer{position:absolute;inset:0;background:#0e1116}
+  #bgLayer img,#bgLayer video{width:100%;height:100%;object-fit:cover}
+  #bgAnim{position:absolute;inset:-25%;opacity:0.62;filter:blur(48px)}
+  #grain{position:absolute;inset:0;opacity:0.05;pointer-events:none;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+  #scrim{position:absolute;inset:0;background:radial-gradient(ellipse 78% 64% at center,rgba(0,0,0,0) 28%,rgba(0,0,0,0.66) 100%)}
+  #stageText{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:7% 9%;text-align:center}
+  .lyr{transition:opacity .5s cubic-bezier(.2,.7,.2,1),transform .5s cubic-bezier(.2,.7,.2,1);max-width:94%;width:100%;will-change:opacity,transform}
+  .lyr.block{display:flex;flex-direction:column;gap:9px}
+  .lyr .ln{line-height:1.22;font-family:var(--font-display)}
+  #curBlock .ln{font-size:clamp(20px,3.7vw,42px);font-weight:600;letter-spacing:-0.02em;color:#fff;text-shadow:0 2px 24px rgba(0,0,0,0.8)}
+  #nextBlock{margin-top:26px}
+  #nextBlock .ln{font-size:clamp(12px,2vw,20px);font-weight:400;color:rgba(255,255,255,0.4);text-shadow:0 1px 12px rgba(0,0,0,0.7)}
+  .enter{opacity:0;transform:translateY(16px) scale(0.985)}
+  #titleCard{position:absolute;left:5%;bottom:6.5%;text-align:left}
+  #tcTitle{font-family:var(--font-display);font-size:clamp(13px,1.9vw,17px);font-weight:600;color:#fff;letter-spacing:-0.01em;text-shadow:0 1px 12px rgba(0,0,0,0.85)}
+  #tcArtist{font-family:var(--font-mono);font-size:clamp(9px,1.3vw,11px);color:var(--acid);letter-spacing:0.14em;text-transform:uppercase;margin-top:3px;text-shadow:0 1px 8px rgba(0,0,0,0.9)}
+  #recDot{position:absolute;top:13px;right:13px;display:none;align-items:center;gap:7px;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);padding:5px 11px;border-radius:8px;font-family:var(--font-mono);font-size:10px;letter-spacing:0.12em}
+  #recDot .blink{width:8px;height:8px;border-radius:50%;background:var(--danger);animation:blink 1s steps(2,start) infinite}
+  @keyframes blink{50%{opacity:0.15}}
+
+  .transport{display:flex;align-items:center;gap:13px;margin-top:15px}
+  .transport input[type=range]{flex:1}
+  .tlabel{font-family:var(--font-mono);font-size:11.5px;color:var(--txt-dim);min-width:96px;text-align:right;letter-spacing:0.02em}
+
+  button{font-family:var(--font-body);cursor:pointer;border:1px solid var(--line-2);background:transparent;color:var(--txt);
+    border-radius:10px;padding:9px 15px;font-size:13px;font-weight:500;transition:.16s cubic-bezier(.2,.7,.2,1);display:inline-flex;align-items:center;gap:7px}
+  button:hover{border-color:var(--acid);color:#fff;transform:translateY(-1px)}
+  button:active{transform:translateY(0) scale(.98)}
+  button.primary{background:var(--acid);color:#000;border-color:var(--acid);font-weight:600}
+  button.primary:hover{background:#d4ff66;box-shadow:0 6px 20px -6px var(--acid)}
+  button.round{width:50px;height:50px;border-radius:50%;justify-content:center;padding:0;flex:0 0 auto}
+  button.ghost{border-color:var(--line)}
+  button:disabled{opacity:0.35;cursor:not-allowed;transform:none}
+  button.rec.active{background:var(--danger);color:#fff;border-color:var(--danger)}
+
+  label.fld{display:block;font-family:var(--font-mono);font-size:10.5px;color:var(--txt-dim);margin-bottom:7px;letter-spacing:0.06em;text-transform:uppercase}
+  input[type=text],select,textarea{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--txt);
+    border-radius:10px;padding:10px 13px;font-family:var(--font-body);font-size:13.5px;transition:.16s}
+  input[type=text]:focus,select:focus,textarea:focus{outline:none;border-color:var(--acid);box-shadow:0 0 0 3px var(--acid-dim)}
+  textarea{resize:vertical;font-family:var(--font-mono);font-size:12.5px;line-height:1.7}
+  input[type=file]{font-size:12px;color:var(--txt-dim);width:100%}
+  input[type=file]::file-selector-button{background:var(--panel-2);border:1px solid var(--line-2);color:var(--txt);
+    border-radius:8px;padding:8px 13px;margin-right:11px;cursor:pointer;font-family:var(--font-body);font-size:12px;font-weight:500;transition:.16s}
+  input[type=file]::file-selector-button:hover{border-color:var(--acid);color:var(--acid)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;height:5px;background:rgba(255,255,255,0.13);border-radius:5px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--acid);cursor:pointer;border:2px solid var(--bg);box-shadow:0 0 0 1px var(--acid)}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border:2px solid var(--bg);border-radius:50%;background:var(--acid);cursor:pointer}
+
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:15px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;margin-bottom:15px}
+  @media(max-width:540px){.row,.row3{grid-template-columns:1fr}}
+  .field{margin-bottom:15px}
+
+  .seg{display:flex;gap:5px;margin-bottom:17px;background:var(--bg-2);padding:5px;border-radius:12px;border:1px solid var(--line)}
+  .seg button{flex:1;border:none;background:transparent;font-size:12.5px;padding:9px;border-radius:8px;font-weight:500}
+  .seg button.on{background:var(--acid);color:#000;font-weight:600}
+  .seg button.on:hover{transform:none}
+  .seg button:hover{background:rgba(255,255,255,0.04)}
+
+  .tabpane{display:none;animation:fade .25s ease}
+  .tabpane.show{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .hint{font-size:11.5px;color:var(--txt-faint);margin-top:9px;line-height:1.6}
+  .hint code,.hint b{font-family:var(--font-mono)}
+  .hint code{background:var(--panel-2);padding:1px 6px;border-radius:5px;color:var(--acid);font-size:11px}
+  .hint b{color:var(--txt-dim);font-weight:700}
+
+  .tapbox{background:var(--bg-2);border:1px solid var(--line);border-radius:13px;padding:17px;margin-top:7px}
+  .tap-cur{font-family:var(--font-display);font-weight:600;font-size:21px;letter-spacing:-0.01em;color:#fff;min-height:30px;margin:6px 0 14px;text-align:center}
+  .tap-cur.empty{color:var(--txt-faint);font-family:var(--font-body);font-weight:400;font-size:13px}
+  .tap-progress{font-family:var(--font-mono);font-size:11px;color:var(--acid);text-align:center;margin-bottom:12px;letter-spacing:0.05em}
+  .tapline{display:flex;gap:10px;align-items:center}
+  .tapline button{flex:1;justify-content:center;padding:15px}
+  #tapBig{font-size:14.5px;font-weight:600}
+
+  .notice{background:var(--acid-dim);border:1px solid rgba(198,242,78,0.28);border-radius:11px;padding:12px 14px;font-size:12px;color:#dcf3a8;margin-bottom:16px;line-height:1.6}
+  .footer-note{margin-top:34px;color:var(--txt-faint);font-size:11.5px;line-height:1.65;border-top:1px solid var(--line);padding-top:22px}
+  .footer-note b{color:var(--txt-dim);font-weight:600;font-family:var(--font-mono);text-transform:uppercase;font-size:10.5px;letter-spacing:0.05em}
+  .pill{display:inline-block;background:var(--panel-2);border:1px solid var(--line);border-radius:20px;padding:4px 12px;font-family:var(--font-mono);font-size:10.5px;color:var(--txt-dim);margin:0 5px 5px 0;letter-spacing:0.02em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site">
+    <div class="logo">
+      <span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+      <h1>Lyric<em>Studio</em></h1>
+    </div>
+    <span class="badge">16:9 · YouTube</span>
+    <span class="spacer"></span>
+    <span class="badge">100% local · aucune donnée envoyée</span>
+  </header>
+
+  <div class="hero">
+    <h2>Tes paroles, <span class="hl">en clip.</span></h2>
+    <p>Charge ta musique, cale les paroles bloc par bloc, pose un fond qui boucle, et exporte une vidéo dans le style des lyric videos YouTube. Rien ne quitte ton navigateur.</p>
+  </div>
+
+  <div class="layout">
+    <!-- ============ APERÇU ============ -->
+    <section class="card">
+      <div class="card-h"><span class="dot"></span><h3>Aperçu du clip</h3></div>
+      <div class="sub">rendu en direct · boucle fluide</div>
+
+      <div class="stage-frame" id="stageFrame">
+        <div id="bgLayer"></div>
+        <div id="bgAnim"></div>
+        <div id="grain"></div>
+        <div id="scrim"></div>
+        <div id="stageText">
+          <div id="curBlock" class="lyr block"></div>
+          <div id="nextBlock" class="lyr block"></div>
+        </div>
+        <div id="titleCard">
+          <div id="tcTitle">Titre de la chanson</div>
+          <div id="tcArtist">Artiste</div>
+        </div>
+        <div id="recDot"><span class="blink"></span>REC</div>
+      </div>
+
+      <div class="transport">
+        <button class="round primary" id="playBtn" aria-label="Lecture">
+          <svg id="playIco" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+        </button>
+        <input type="range" id="seek" min="0" max="100" value="0" step="0.05">
+        <span class="tlabel" id="timeLabel">0:00 / 0:00</span>
+      </div>
+      <audio id="audio" preload="metadata"></audio>
+      <p class="hint" id="noAudioHint">Aucun audio chargé — l'aperçu tourne sur une horloge de démo (30 s). Charge un MP3 pour la vraie synchro.</p>
+
+      <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="rec" id="recBtn">
+          <svg class="ico" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="7"/></svg>
+          Enregistrer la vidéo
+        </button>
+        <span class="hint" id="recHint" style="margin-top:0;align-self:center">Enregistre l'aperçu en fichier <code>.webm</code> (lisible sur YouTube).</span>
+      </div>
+    </section>
+
+    <!-- ============ RÉGLAGES ============ -->
+    <section class="card">
+      <div class="card-h"><span class="dot"></span><h3>Réglages</h3></div>
+      <div class="sub">audio · fond · infos · calage</div>
+
+      <div class="row">
+        <div>
+          <label class="fld">Audio (MP3)</label>
+          <input type="file" id="audioFile" accept="audio/*">
+        </div>
+        <div>
+          <label class="fld">Fond — image ou vidéo</label>
+          <input type="file" id="bgFile" accept="image/*,video/*">
+        </div>
+      </div>
+
+      <div class="row3">
+        <div><label class="fld">Titre</label><input type="text" id="inTitle" value="Titre de la chanson"></div>
+        <div><label class="fld">Artiste</label><input type="text" id="inArtist" value="Artiste"></div>
+        <div><label class="fld">Ambiance (si pas de fond)</label>
+          <select id="inMood">
+            <option value="aurora">Aurora — mauve / bleu</option>
+            <option value="sunset">Coucher de soleil</option>
+            <option value="deep">Nuit profonde</option>
+            <option value="forest">Forêt</option>
+            <option value="rose">Rose poudré</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="seg">
+        <button id="segManual" class="on">Saisie / collage</button>
+        <button id="segTap">Tape-pour-caler</button>
+      </div>
+
+      <!-- MANUEL -->
+      <div class="tabpane show" id="paneManual">
+        <label class="fld">Paroles avec timings — une ligne par phrase</label>
+        <textarea id="lyricsInput" rows="10">0:00 |
+0:04 Première phrase qui apparaît
+0:04 La deuxième s'ajoute juste en dessous
+0:13 | Nouveau bloc, l'ancien disparaît
+0:13 La suite continue de défiler
+0:22 | Centré, lisible, esthétique
+0:22 Comme les lyric videos YouTube</textarea>
+        <p class="hint">Format : <code>mm:ss texte</code>. Mets <code>|</code> juste après le temps pour <b>démarrer un nouveau bloc</b> (sinon la ligne s'ajoute au bloc courant). En général 2 lignes par bloc, qui apparaissent ensemble.</p>
+        <button class="primary" id="applyBtn" style="margin-top:12px">Appliquer</button>
+      </div>
+
+      <!-- TAP -->
+      <div class="tabpane" id="paneTap">
+        <div class="notice">Colle d'abord tes paroles brutes (une phrase par ligne, ligne vide = séparation de bloc). Lance la musique, puis clique « Caler » au moment où chaque phrase doit apparaître.</div>
+        <label class="fld">Paroles brutes (sans timing)</label>
+        <textarea id="rawLyrics" rows="6">Première phrase qui apparaît
+La deuxième s'ajoute juste en dessous
+
+Nouveau bloc, l'ancien disparaît
+La suite continue de défiler</textarea>
+        <button class="ghost" id="loadRaw" style="margin:10px 0 14px">Charger ces lignes</button>
+
+        <div class="tapbox">
+          <div class="tap-progress" id="tapProg">— prêt —</div>
+          <div class="tap-cur empty" id="tapCur">Clique « Charger ces lignes » puis lance la lecture</div>
+          <div class="tapline">
+            <button class="ghost" id="tapUndo">↩ Annuler</button>
+            <button class="primary" id="tapBig" disabled>Caler cette ligne ⏎</button>
+          </div>
+          <p class="hint">Astuce clavier : barre <b>espace</b> pour caler la ligne courante. <code>|</code> en début de ligne brute force un nouveau bloc.</p>
+        </div>
+        <button class="primary" id="tapApply" style="margin-top:14px" disabled>Valider le calage →</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="footer-note">
+    <p><b>Ce que fait ce site, ici, sans serveur :</b> upload audio, calage manuel ou tape-pour-caler, fond image/vidéo/dégradé animé, rendu lyric video bloc-par-bloc, export <code>.webm</code>.</p>
+    <p style="margin-top:8px"><b>Ce qui demanderait un serveur, à brancher ensuite :</b>
+      <span class="pill">transcription auto (Whisper) — « caler selon l'audio »</span>
+      <span class="pill">fond généré par IA</span>
+      <span class="pill">export .mp4 haute qualité</span>
+    </p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var audio=document.getElementById('audio');
+  var seek=document.getElementById('seek');
+  var timeLabel=document.getElementById('timeLabel');
+  var playBtn=document.getElementById('playBtn');
+  var playIco=document.getElementById('playIco');
+  var curBlock=document.getElementById('curBlock');
+  var nextBlock=document.getElementById('nextBlock');
+  var hasAudio=false, hasBgMedia=false, playing=false, demoClock=0, lastIdx=-1;
+  var blocks=[]; // [{t, lines:[...]}]
+
+  function fmt(t){if(!isFinite(t)||t<0)t=0;var m=Math.floor(t/60),s=Math.floor(t%60);return m+':'+(s<10?'0':'')+s;}
+  function dur(){return hasAudio?(audio.duration||0):30;}
+  function now(){return hasAudio?audio.currentTime:demoClock;}
+
+  /* ---- parse manual textarea into blocks ---- */
+  function parseManual(txt){
+    var raw=[];
+    txt.split('\n').forEach(function(row){
+      var m=row.match(/^\s*(\d+):(\d{1,2})\s*(\|)?\s*(.*)$/);
+      if(!m)return;
+      var t=parseInt(m[1])*60+parseInt(m[2]);
+      var isNew=!!m[3];
+      var text=m[4].trim();
+      raw.push({t:t,isNew:isNew,text:text});
+    });
+    var bl=[];
+    raw.forEach(function(r,i){
+      var startNew = r.isNew || i===0 || (bl.length && r.t!==bl[bl.length-1].t);
+      if(startNew || !bl.length){ bl.push({t:r.t,lines:r.text?[r.text]:[]}); }
+      else { if(r.text) bl[bl.length-1].lines.push(r.text); }
+    });
+    return bl.filter(function(b){return true;});
+  }
+
+  function currentBlockIndex(t){
+    var idx=-1;
+    for(var i=0;i<blocks.length;i++){ if(blocks[i].t<=t+0.001) idx=i; else break; }
+    return idx;
+  }
+
+  function paintBlock(el,lines,animate){
+    el.innerHTML='';
+    (lines||[]).forEach(function(ln){
+      if(!ln) return;
+      var d=document.createElement('div');
+      d.className='ln'+(animate?' enter':'');
+      d.textContent=ln;
+      el.appendChild(d);
+    });
+    if(animate){
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){
+          el.querySelectorAll('.ln.enter').forEach(function(n){n.classList.remove('enter');});
+        });
+      });
+    }
+  }
+
+  function render(){
+    var t=now();
+    var idx=currentBlockIndex(t);
+    if(idx!==lastIdx){
+      var cur=idx>=0?blocks[idx].lines:[];
+      var nxt=(idx+1<blocks.length)?blocks[idx+1].lines:[];
+      paintBlock(curBlock,cur,true);
+      paintBlock(nextBlock,nxt,false);
+      if(!cur.length && !blocks.length){
+        curBlock.innerHTML='<div class="ln" style="opacity:.5;font-weight:300;font-size:18px">Ajoute des paroles dans les réglages</div>';
+      }
+      lastIdx=idx;
+    }
+    var d=dur();
+    seek.value=d?(t/d*100):0;
+    timeLabel.textContent=fmt(t)+' / '+fmt(d);
+  }
+
+  /* ---- backgrounds ---- */
+  var moods={
+    aurora:['#15172a','radial-gradient(circle at 30% 35%,rgba(120,90,220,.7),transparent 55%),radial-gradient(circle at 72% 68%,rgba(60,120,210,.6),transparent 55%)'],
+    sunset:['#1e1018','radial-gradient(circle at 33% 58%,rgba(216,90,48,.65),transparent 55%),radial-gradient(circle at 70% 38%,rgba(212,83,126,.6),transparent 55%)'],
+    deep:['#05070f','radial-gradient(circle at 40% 50%,rgba(24,95,165,.6),transparent 55%),radial-gradient(circle at 65% 62%,rgba(83,74,183,.5),transparent 55%)'],
+    forest:['#08130d','radial-gradient(circle at 35% 45%,rgba(29,158,117,.6),transparent 55%),radial-gradient(circle at 70% 62%,rgba(99,153,34,.5),transparent 55%)'],
+    rose:['#1c1116','radial-gradient(circle at 35% 45%,rgba(212,83,126,.55),transparent 55%),radial-gradient(circle at 70% 60%,rgba(201,168,106,.45),transparent 55%)']
+  };
+  var bgAnim=document.getElementById('bgAnim'),bgLayer=document.getElementById('bgLayer');
+  function applyMood(){
+    if(hasBgMedia)return;
+    var m=moods[document.getElementById('inMood').value]||moods.aurora;
+    bgLayer.style.background=m[0];bgLayer.innerHTML='';
+    bgAnim.style.background=m[1];
+    bgAnim.style.animation='drift 20s ease-in-out infinite alternate';
+  }
+  var st=document.createElement('style');
+  st.textContent='@keyframes drift{0%{transform:translate(-4%,-2%) scale(1.06)}100%{transform:translate(4%,3%) scale(1.14)}}';
+  document.head.appendChild(st);
+
+  /* ---- transport ---- */
+  function setPlaying(p){
+    playing=p;
+    playIco.innerHTML = p ? '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>' : '<polygon points="6 4 20 12 6 20 6 4"/>';
+    if(hasAudio){ if(p) audio.play(); else audio.pause(); }
+  }
+  playBtn.addEventListener('click',function(){setPlaying(!playing);});
+  seek.addEventListener('input',function(){
+    var t=dur()*(seek.value/100);
+    if(hasAudio)audio.currentTime=t;else demoClock=t;
+    lastIdx=-1; render();
+  });
+  audio.addEventListener('ended',function(){audio.currentTime=0;lastIdx=-1;audio.play();});
+
+  setInterval(function(){
+    if(!hasAudio && playing){ demoClock+=0.05; if(demoClock>30)demoClock=0; }
+    render();
+  },50);
+
+  /* ---- file inputs ---- */
+  document.getElementById('audioFile').addEventListener('change',function(e){
+    var f=e.target.files[0];if(!f)return;
+    audio.src=URL.createObjectURL(f);hasAudio=true;
+    document.getElementById('noAudioHint').style.display='none';
+    audio.addEventListener('loadedmetadata',function(){lastIdx=-1;render();},{once:true});
+  });
+  document.getElementById('bgFile').addEventListener('change',function(e){
+    var f=e.target.files[0];if(!f)return;
+    var url=URL.createObjectURL(f);
+    bgAnim.style.background='none';bgAnim.style.animation='none';
+    if(f.type.indexOf('video')===0){
+      bgLayer.innerHTML='<video src="'+url+'" autoplay muted loop playsinline></video>';
+    }else{
+      bgLayer.innerHTML='<img src="'+url+'">';
+    }
+    hasBgMedia=true;
+  });
+  document.getElementById('inMood').addEventListener('change',applyMood);
+  function syncTitle(){
+    document.getElementById('tcTitle').textContent=document.getElementById('inTitle').value||'Titre';
+    document.getElementById('tcArtist').textContent=document.getElementById('inArtist').value||'Artiste';
+  }
+  document.getElementById('inTitle').addEventListener('input',syncTitle);
+  document.getElementById('inArtist').addEventListener('input',syncTitle);
+
+  document.getElementById('applyBtn').addEventListener('click',function(){
+    blocks=parseManual(document.getElementById('lyricsInput').value);
+    lastIdx=-1;render();
+  });
+
+  /* ---- segmented tabs ---- */
+  function showPane(which){
+    document.getElementById('paneManual').classList.toggle('show',which==='m');
+    document.getElementById('paneTap').classList.toggle('show',which==='t');
+    document.getElementById('segManual').classList.toggle('on',which==='m');
+    document.getElementById('segTap').classList.toggle('on',which==='t');
+  }
+  document.getElementById('segManual').addEventListener('click',function(){showPane('m');});
+  document.getElementById('segTap').addEventListener('click',function(){showPane('t');});
+
+  /* ---- tap to sync ---- */
+  var tapLines=[], tapStamps=[], tapPtr=0;
+  var tapCur=document.getElementById('tapCur'),tapProg=document.getElementById('tapProg');
+  var tapBig=document.getElementById('tapBig'),tapApply=document.getElementById('tapApply');
+  function loadRaw(){
+    var rows=document.getElementById('rawLyrics').value.split('\n');
+    tapLines=[];
+    rows.forEach(function(r){
+      var trimmed=r.trim();
+      if(trimmed===''){ tapLines.push({sep:true}); }
+      else { var nb=trimmed.charAt(0)==='|'; tapLines.push({text:nb?trimmed.slice(1).trim():trimmed,nb:nb}); }
+    });
+    // remove leading/trailing separators
+    while(tapLines.length&&tapLines[0].sep)tapLines.shift();
+    tapStamps=[];tapPtr=0;
+    tapBig.disabled=false;tapApply.disabled=true;
+    refreshTap();
+  }
+  function nextTextIdx(from){
+    for(var i=from;i<tapLines.length;i++){if(!tapLines[i].sep)return i;}
+    return -1;
+  }
+  function refreshTap(){
+    var idx=nextTextIdx(tapPtr);
+    if(idx<0){
+      tapCur.className='tap-cur';tapCur.textContent='✓ toutes les lignes calées';
+      tapProg.textContent=tapStamps.length+' ligne(s) calée(s)';
+      tapBig.disabled=true;tapApply.disabled=false;
+    }else{
+      tapCur.className='tap-cur';tapCur.textContent=tapLines[idx].text;
+      var total=tapLines.filter(function(l){return !l.sep;}).length;
+      tapProg.textContent='ligne '+(tapStamps.length+1)+' / '+total;
+    }
+  }
+  function doTap(){
+    var idx=nextTextIdx(tapPtr);
+    if(idx<0)return;
+    // determine if new block: explicit nb, or a separator sits between prev tapped and this one
+    var isNew = tapLines[idx].nb || tapStamps.length===0;
+    for(var j=tapPtr;j<idx;j++){ if(tapLines[j].sep) isNew=true; }
+    tapStamps.push({t:now(),text:tapLines[idx].text,nb:isNew});
+    tapPtr=idx+1;
+    refreshTap();
+  }
+  document.getElementById('loadRaw').addEventListener('click',loadRaw);
+  tapBig.addEventListener('click',doTap);
+  document.getElementById('tapUndo').addEventListener('click',function(){
+    if(!tapStamps.length)return;
+    tapStamps.pop();
+    // rewind pointer to before that text line
+    var count=0,target=tapStamps.length;
+    tapPtr=0;
+    for(var i=0;i<tapLines.length;i++){
+      if(!tapLines[i].sep){ if(count===target){tapPtr=i;break;} count++; }
+      if(i===tapLines.length-1)tapPtr=tapLines.length;
+    }
+    if(target===0)tapPtr=0;
+    tapApply.disabled=true;refreshTap();
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.code==='Space' && document.getElementById('paneTap').classList.contains('show')){
+      var a=document.activeElement;
+      if(a&&(a.tagName==='TEXTAREA'||a.tagName==='INPUT'))return;
+      e.preventDefault();doTap();
+    }
+  });
+  tapApply.addEventListener('click',function(){
+    // build blocks from stamps
+    var bl=[];
+    tapStamps.forEach(function(s){
+      if(s.nb||!bl.length){bl.push({t:s.t,lines:[s.text]});}
+      else{bl[bl.length-1].lines.push(s.text);}
+    });
+    blocks=bl;
+    // also reflect into manual textarea for editing
+    var txt=tapStamps.map(function(s){return fmt(s.t)+' '+(s.nb?'| ':'')+s.text;}).join('\n');
+    document.getElementById('lyricsInput').value=txt;
+    lastIdx=-1;render();showPane('m');
+  });
+
+  /* ---- recording ---- */
+  var recBtn=document.getElementById('recBtn'),recDot=document.getElementById('recDot');
+  var mediaRec=null,chunks=[],recording=false;
+  recBtn.addEventListener('click',function(){
+    if(!recording)startRec();else stopRec();
+  });
+  function startRec(){
+    var frame=document.getElementById('stageFrame');
+    if(!('MediaRecorder' in window)){alert('Ton navigateur ne supporte pas l\'enregistrement. Essaie Chrome.');return;}
+    // capture the stage via canvas mirroring is complex; use captureStream on a canvas snapshot loop
+    var cv=document.createElement('canvas');
+    var rect=frame.getBoundingClientRect();
+    cv.width=1280;cv.height=720;
+    var ctx=cv.getContext('2d');
+    var stream=cv.captureStream(30);
+    // mix audio if present
+    try{
+      if(hasAudio && audio.captureStream){
+        var ast=audio.captureStream();
+        ast.getAudioTracks().forEach(function(tr){stream.addTrack(tr);});
+      }
+    }catch(err){}
+    chunks=[];
+    try{ mediaRec=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9,opus'}); }
+    catch(e){ try{mediaRec=new MediaRecorder(stream);}catch(e2){alert('Enregistrement indisponible.');return;} }
+    mediaRec.ondataavailable=function(ev){if(ev.data.size)chunks.push(ev.data);};
+    mediaRec.onstop=function(){
+      var blob=new Blob(chunks,{type:'video/webm'});
+      var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+      a.download=(document.getElementById('inTitle').value||'lyric-video')+'.webm';
+      a.click();
+    };
+    // rendering loop: draw bg + text onto canvas using html2canvas-free manual draw
+    var raf;
+    function drawFrame(){
+      // background
+      ctx.fillStyle='#000';ctx.fillRect(0,0,1280,720);
+      var bgImg=bgLayer.querySelector('img'),bgVid=bgLayer.querySelector('video');
+      if(bgVid){ try{ctx.drawImage(bgVid,0,0,1280,720);}catch(e){} }
+      else if(bgImg){ try{ctx.drawImage(bgImg,0,0,1280,720);}catch(e){} }
+      else {
+        var g=ctx.createRadialGradient(640,360,80,640,360,700);
+        g.addColorStop(0,'rgba(120,90,200,0.5)');g.addColorStop(1,'#15172a');
+        ctx.fillStyle=g;ctx.fillRect(0,0,1280,720);
+      }
+      // scrim
+      var sg=ctx.createRadialGradient(640,360,200,640,360,720);
+      sg.addColorStop(0,'rgba(0,0,0,0)');sg.addColorStop(1,'rgba(0,0,0,0.62)');
+      ctx.fillStyle=sg;ctx.fillRect(0,0,1280,720);
+      // text
+      var idx=currentBlockIndex(now());
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.shadowColor='rgba(0,0,0,0.75)';ctx.shadowBlur=22;
+      var cur=idx>=0?blocks[idx].lines:[];
+      var startY=360-((cur.length-1)*32);
+      ctx.fillStyle='#fff';ctx.font='600 40px "Bricolage Grotesque",sans-serif';
+      cur.forEach(function(ln,i){ctx.fillText(ln,640,startY+i*64);});
+      var nxt=(idx+1<blocks.length)?blocks[idx+1].lines:[];
+      ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font='400 22px "Bricolage Grotesque",sans-serif';
+      var ny=560;
+      nxt.forEach(function(ln,i){ctx.fillText(ln,640,ny+i*32);});
+      ctx.shadowBlur=0;
+      // title card
+      ctx.textAlign='left';ctx.fillStyle='#fff';ctx.font='600 22px "Bricolage Grotesque",sans-serif';
+      ctx.fillText(document.getElementById('inTitle').value||'',64,640);
+      ctx.fillStyle='#c6f24e';ctx.font='400 13px "Space Mono",monospace';
+      ctx.fillText((document.getElementById('inArtist').value||'').toUpperCase(),64,668);
+      raf=requestAnimationFrame(drawFrame);
+    }
+    drawFrame();
+    mediaRec._raf=function(){return raf;};
+    mediaRec.start();
+    recording=true;recBtn.classList.add('active');recBtn.querySelector('svg').nextSibling.textContent=' Arrêter';
+    recBtn.childNodes[2]&&(recBtn.childNodes[2].textContent='Arrêter');
+    recBtn.innerHTML='<svg class="ico" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg> Arrêter';
+    recDot.style.display='flex';
+    if(hasAudio){audio.currentTime=0;setPlaying(true);}
+    mediaRec._stopDraw=function(){cancelAnimationFrame(raf);};
+  }
+  function stopRec(){
+    if(mediaRec){ mediaRec._stopDraw&&mediaRec._stopDraw(); mediaRec.stop(); }
+    recording=false;recBtn.classList.remove('active');
+    recBtn.innerHTML='<svg class="ico" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="7"/></svg> Enregistrer la vidéo';
+    recDot.style.display='none';
+    if(hasAudio)setPlaying(false);
+  }
+
+  /* ---- init ---- */
+  blocks=parseManual(document.getElementById('lyricsInput').value);
+  applyMood();syncTitle();render();
+})();
+</script>
+</body>
+</html>
